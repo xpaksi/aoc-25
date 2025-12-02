@@ -7,6 +7,7 @@ pub enum Direction {
     Left,
     Right,
 }
+
 pub struct LineElement {
     pub direction: Direction,
     pub value: i32,
@@ -27,19 +28,31 @@ pub fn parse_line(input_line: String) -> Option<LineElement> {
     Some(LineElement { direction, value })
 }
 
-pub fn solve_helper(element: LineElement, arrow: i32) -> i32 {
+pub fn solve_helper(element: LineElement, arrow: i32) -> (i32, i32, i32) {
     match element.direction {
         Direction::Left => {
-            return (arrow - element.value) % 100;
+            return (
+                (arrow - (element.value % 100) + 100) % 100,
+                element.value / 100,
+                if arrow == 0 {
+                    0
+                } else {
+                    arrow - (element.value % 100)
+                },
+            );
         }
         Direction::Right => {
-            return (arrow + element.value) % 100;
+            return (
+                (arrow + (element.value % 100) + 100) % 100,
+                element.value / 100,
+                arrow + (element.value % 100),
+            );
         }
     }
 }
 
 pub fn solve(file: File) -> Result<i32, Box<dyn std::error::Error>> {
-    let mut start_arrow = 50;
+    let mut arrow = 50;
     let mut result = 0;
     let buf_reader = BufReader::new(file);
     for line in buf_reader.lines() {
@@ -47,12 +60,18 @@ pub fn solve(file: File) -> Result<i32, Box<dyn std::error::Error>> {
         let element = parse_line(line);
         match element {
             Some(e) => {
-                start_arrow = solve_helper(e, start_arrow);
+                let (arrow_result, div_result, reminder) = solve_helper(e, arrow);
+                result = result + div_result;
+                if arrow_result != 0 {
+                    if reminder < 0 || reminder > 99 {
+                        result = result + 1;
+                    }
+                } else {
+                    result = result + 1
+                }
+                arrow = arrow_result;
             }
             None => continue,
-        }
-        if start_arrow == 0 {
-            result = result + 1;
         }
     }
 
