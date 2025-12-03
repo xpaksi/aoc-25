@@ -3,33 +3,47 @@ use std::{
     io::{BufReader, Read},
 };
 
-pub fn find_max(elements: Vec<u32>) -> (u32, usize) {
-    let mut max = 0;
-    let mut max_index = 0;
-    let mut index = 0;
-
-    for i in elements {
-        if max < i {
-            max = i;
-            max_index = index;
-        }
-        index += 1;
-    }
-
+pub fn find_max(elements: &Vec<u32>, start_index: usize, end_index: usize) -> (u32, usize) {
+    let (max, max_index) =
+        elements
+            .iter()
+            .enumerate()
+            .fold((0, 0), |(max, max_index), (index, &val)| {
+                if (max < val) && index >= start_index && index <= end_index {
+                    (val, index)
+                } else {
+                    (max, max_index)
+                }
+            });
     return (max, max_index + 1);
 }
 
-pub fn solve_helper(elements: &Vec<u32>) -> Result<u32, Box<dyn std::error::Error>> {
-    let (first_part_val, first_part_idx) = find_max(elements[0..=elements.len() - 2].to_vec());
+pub fn solve_helper(elements: &Vec<u32>) -> Result<u64, Box<dyn std::error::Error>> {
+    let (first_part_val, first_part_idx) = find_max(elements, 0, elements.len() - 2);
 
     let (second_part_val, _second_part_idx) =
-        find_max(elements[first_part_idx..=elements.len() - 1].to_vec());
+        find_max(elements, first_part_idx, elements.len() - 1);
 
-    let val: u32 = format!("{}{}", first_part_val, second_part_val).parse()?;
+    let val: u64 = format!("{}{}", first_part_val, second_part_val).parse()?;
     return Ok(val);
 }
 
-pub fn solve(file: File) -> Result<u32, Box<dyn std::error::Error>> {
+pub fn solve_helper_two(elements: &Vec<u32>) -> Result<u64, Box<dyn std::error::Error>> {
+    let mut result_vec: Vec<u32> = Vec::with_capacity(12);
+    let mut start_idx: usize = 0;
+
+    for i in (0..12).rev() {
+        let (val, val_idx) = find_max(elements, start_idx, elements.len() - (i + 1));
+        start_idx = val_idx;
+        result_vec.push(val);
+    }
+
+    let result_str: Vec<String> = result_vec.iter().map(|x| x.to_string()).collect();
+    let result: u64 = result_str.join("").parse()?;
+    Ok(result)
+}
+
+pub fn solve(file: File) -> Result<u64, Box<dyn std::error::Error>> {
     let mut buf_reader = BufReader::new(file);
     let mut contents = String::new();
     buf_reader.read_to_string(&mut contents)?;
@@ -40,6 +54,9 @@ pub fn solve(file: File) -> Result<u32, Box<dyn std::error::Error>> {
         .filter(|x: &Vec<u32>| x.len() > 0)
         .collect();
 
-    let result: u32 = elements.iter().filter_map(|x| solve_helper(x).ok()).sum();
+    let result: u64 = elements
+        .iter()
+        .filter_map(|x| solve_helper_two(x).ok())
+        .sum();
     Ok(result)
 }
